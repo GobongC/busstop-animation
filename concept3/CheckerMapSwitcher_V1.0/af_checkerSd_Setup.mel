@@ -1,0 +1,16 @@
+string $defIconDir = `internalVar -ubd`;
+global string $gShelfTopLevel;
+	if (`tabLayout -exists $gShelfTopLevel`) 
+	    {
+		string $currentShelf = `tabLayout -query -selectTab $gShelfTopLevel`;
+		setParent $currentShelf;
+			
+		shelfButton
+		    -parent ($currentShelf)
+			-label "CKM"
+			-annotation ("aaron's checker map")
+			-image1 ($defIconDir + "af_checkermap.xpm")
+			-command "source af_checkerSd.mel;\rshiftCMD;"
+			checkermapBtn;
+		print "af_checkermap Successfully Setup";			
+		}

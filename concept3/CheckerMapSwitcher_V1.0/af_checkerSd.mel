@@ -1,0 +1,165 @@
+/****************************************************************************
+Name: Checker Map Switcher
+Version: 1.0
+Purpose: Make a lambert shader and apply a UV checker map for UV section.
+        By click button to cycle through 4 different UV checker maps.
+        BY Shift + click button to cycle through 4 resolution ratio of checker maps.
+        Support Mulit-Objects.
+Useage: 1, Copy af_checkerSd.mel,af_checkerSd_Setup.mel and checkermap folder to maya script path.
+        2, Copy af_checkermap.XPM to maya icon path.
+        3, Open Maya. Type "source af_checkerSd_Setup.mel" in command line and execute. Or simply drag n drop af_checkerSd_Setup.mel into maya.
+        4, You should see a new icon has been created on shelf.
+        5, Done!
+Question, comments, bugs and other strange things E-mail me
+Created by: Aaron Fang
+Website: http://hi.baidu.com/aaronfang
+Contact: fangzheng003@gmail.com
+Version 1.0 Feb 21, 2010
+*****************************************************************************/
+
+global proc af_checkerSd()
+{
+    source AEreplaceFilename.mel;
+            
+    string $SelObj[] = `ls -sl`;
+    string $checkermapN[] = `ls -ap checkermap_Nd`;
+    if($checkermapN[0] != "checkermap_Nd")
+        {
+            //get shape node of selected object
+            string $currentSel[] = `ls -sl`;
+            string $curShape[];
+            if((`objectType $currentSel[0]`) == "transform")
+            {
+                $curShape = `listRelatives -shapes $currentSel[0]`;
+            }
+            //create checker With Place2D node
+            string $checkerPlace[];
+        
+            $checkerPlace[0]  = `shadingNode -n "checker_p2d"-asUtility place2dTexture`;
+            $checkerPlace[1] = `shadingNode -n "checkermap_Nd" -asTexture file`;
+
+            //Standard connections from 2dplacement node to file node//
+            
+            connectAttr -f ($checkerPlace[0] + ".coverage") ($checkerPlace[1] + ".coverage");
+            connectAttr -f ($checkerPlace[0] + ".translateFrame") ($checkerPlace[1] + ".translateFrame");
+            connectAttr -f ($checkerPlace[0] + ".rotateFrame") ($checkerPlace[1] + ".rotateFrame");
+            connectAttr -f ($checkerPlace[0] + ".mirrorU") ($checkerPlace[1] + ".mirrorU");
+            connectAttr -f ($checkerPlace[0] + ".mirrorV") ($checkerPlace[1] + ".mirrorV");
+            connectAttr -f ($checkerPlace[0] + ".stagger") ($checkerPlace[1] + ".stagger");
+            connectAttr -f ($checkerPlace[0] + ".wrapU") ($checkerPlace[1] + ".wrapU");
+            connectAttr -f ($checkerPlace[0] + ".wrapV") ($checkerPlace[1] + ".wrapV");
+            connectAttr -f ($checkerPlace[0] + ".repeatUV") ($checkerPlace[1] + ".repeatUV");
+            connectAttr -f ($checkerPlace[0] + ".offset") ($checkerPlace[1] + ".offset");
+            connectAttr -f ($checkerPlace[0] + ".rotateUV") ($checkerPlace[1] + ".rotateUV");
+            connectAttr -f ($checkerPlace[0] + ".noiseUV") ($checkerPlace[1] + ".noiseUV");
+            connectAttr -f ($checkerPlace[0] + ".vertexUvOne") ($checkerPlace[1] + ".vertexUvOne");
+            connectAttr -f ($checkerPlace[0] + ".vertexUvTwo") ($checkerPlace[1] + ".vertexUvTwo");
+            connectAttr -f ($checkerPlace[0] + ".vertexUvThree") ($checkerPlace[1] + ".vertexUvThree");
+            connectAttr -f ($checkerPlace[0] + ".vertexCameraOne") ($checkerPlace[1] + ".vertexCameraOne");
+            connectAttr -f ($checkerPlace[0] + ".outUV") ($checkerPlace[1] + ".uv");
+            connectAttr -f ($checkerPlace[0] + ".outUvFilterSize") ($checkerPlace[1] + ".uvFilterSize");
+            
+            setAttr ($checkerPlace[0] + ".repeatU") 1;
+            setAttr ($checkerPlace[0] + ".repeatV") 1;
+
+            //create a lambert shader for the master shader
+            $MasterSd = `shadingNode -n "af_checker_Lambert" -asShader lambert`;
+
+            //connect between checker file and lambert shader
+            connectAttr -f ($checkerPlace[1] + ".outColor") ($MasterSd + ".color");
+
+            //connect texture from path(maya_enviroment_path/scripts/checkermap)
+            string $envPath = `about -env`;
+            string $texPath = (substitute("[^(\\/)]*$", $envPath, ""));
+            AEassignFilenameCB  ($checkerPlace[1] + ".fileTextureName")  ($texPath + "scripts/checkermap/" + "checkermap_a.png") "image";
+            
+        //assign shader to selected objects
+        for($obj in $SelObj)
+            {
+                select -r $obj;
+                hyperShade -assign "af_checker_Lambert";
+            }
+
+        }else
+        {
+            $nmObj = (size(`ls -sl`));
+            if($nmObj>=1)
+                {
+                    string $SelObj[] = `ls -sl`;
+                    //$selCheckerSd = `select -r af_checker_Lambert`;
+                    for($obj in $SelObj)
+                        {
+                            select -r $obj;
+                            hyperShade -assign "af_checker_Lambert";
+                        }
+                }
+            
+  
+            string $checkermapPath = `getAttr checkermap_Nd.fileTextureName`;
+            string $fileNm = (match("^[^.]*", match("[^(\\/)]*$", $checkermapPath)));
+            if($fileNm == "checkermap_a")
+                {
+                    string $envPath = `about -env`;
+				    string $texPath = (substitute("[^(\\/)]*$", $envPath, ""));
+				    AEassignFilenameCB  ("checkermap_Nd" + ".fileTextureName")  ($texPath + "scripts/checkermap/" + "checkermap_b.png") "image";
+                }else if($fileNm == "checkermap_b")
+                        {
+                            string $envPath = `about -env`;
+                            string $texPath = (substitute("[^(\\/)]*$", $envPath, ""));
+                            AEassignFilenameCB  ("checkermap_Nd" + ".fileTextureName")  ($texPath + "scripts/checkermap/" + "checkermap_c.png") "image";
+                        }else if($fileNm == "checkermap_c")
+                                {
+                                    string $envPath = `about -env`;
+                                    string $texPath = (substitute("[^(\\/)]*$", $envPath, ""));
+                                    AEassignFilenameCB  ("checkermap_Nd" + ".fileTextureName")  ($texPath + "scripts/checkermap/" + "checkermap_d.png") "image";
+                                }else if($fileNm == "checkermap_d")
+                                        {
+                                            string $envPath = `about -env`;
+                                            string $texPath = (substitute("[^(\\/)]*$", $envPath, ""));
+                                            AEassignFilenameCB  ("checkermap_Nd" + ".fileTextureName")  ($texPath + "scripts/checkermap/" + "checkermap_a.png") "image";
+                                        }
+        }
+        
+}
+
+global proc shiftCMD()
+{
+    int $mods = `getModifiers`;
+    if ($mods == 1)
+        {
+            source af_checkerSd.mel;
+            cycCheckerSize;
+        }
+    else
+        {
+                source af_checkerSd.mel;
+                af_checkerSd;
+        }
+
+}
+
+global proc cycCheckerSize()
+{
+    int $curRptNm = `getAttr checker_p2d.repeatU`;
+    if($curRptNm == 1)
+        {
+            setAttr "checker_p2d.repeatU" 3;
+            setAttr "checker_p2d.repeatV" 3;
+        }else if($curRptNm == 3)
+                {
+                    setAttr "checker_p2d.repeatU" 5;
+                    setAttr "checker_p2d.repeatV" 5;
+                }else if($curRptNm == 5)
+                        {
+                            setAttr "checker_p2d.repeatU" 8;
+                            setAttr "checker_p2d.repeatV" 8;
+                        }else if($curRptNm == 8)
+                                {
+                                    setAttr "checker_p2d.repeatU" 1;
+                                    setAttr "checker_p2d.repeatV" 1;
+                                }else if($curRptNm != 1 && $curRptNm != 3 && $curRptNm != 5 && $curRptNm != 8)
+                                        {
+                                          setAttr "checker_p2d.repeatU" 1;
+                                          setAttr "checker_p2d.repeatV" 1;  
+                                        }
+}
